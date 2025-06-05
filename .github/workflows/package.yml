@@ -12,35 +12,27 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
+      # 1. 优先手动安装 pnpm
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+        run: |
+          npm install -g pnpm@8
+          echo "PATH=$(npm root -g)/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # 2. 设置 Node.js（仅用于版本管理和缓存）
+      - uses: actions/setup-node@v4
         with:
           node-version: 22.x
           cache: 'pnpm'
 
-      - name: Verify pnpm
+      # 3. 验证环境
+      - name: Check pnpm
         run: |
           pnpm --version
           which pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Linux x64
-        run: pnpm run build:linux
-
-      - name: Upload to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist/linux/x64/*.AppImage
-            dist/linux/x64/*.deb
+      # 4. 正常构建流程
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:linux
+      - run: ls -R dist
