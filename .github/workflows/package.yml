@@ -2,46 +2,45 @@ name: Build (Linux x64)
 
 on:
   push:
-    tags: v*  # 仅当推送 tag 时触发（格式 v*，如 v1.0.0）
-  workflow_dispatch:  # 支持手动触发
+    tags: v*
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # 使用 Linux 环境
+    runs-on: ubuntu-latest
     env:
-      NODE_OPTIONS: --max-old-space-size=4096  # 防止内存不足
+      NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4  # 使用最新版本
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x  # 指定 Node.js 版本
-          cache: 'pnpm'  # 缓存 pnpm 依赖
+        uses: actions/checkout@v4
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8  # 指定 pnpm 版本
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'pnpm'
+
+      - name: Verify pnpm
+        run: |
+          pnpm --version
+          which pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile  # 严格锁定依赖版本
+        run: pnpm install --frozen-lockfile
 
-      - name: Build for Linux x64
-        run: pnpm run build:linux:x64  # 替换为你的实际构建命令
+      - name: Build Linux x64
+        run: pnpm run build:linux
 
-      - name: List dist files (调试用)
-        run: ls -R dist  # 查看生成的构建文件
-
-      - name: Upload release assets (可选)
-        if: startsWith(github.ref, 'refs/tags/')  # 仅在 tag 推送时上传
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/*.deb      # 如果有 deb 包
-            dist/*.AppImage # 如果有 AppImage
-            dist/*.tar.gz   # 其他 Linux 包
-          draft: false
-          prerelease: false
+            dist/linux/x64/*.AppImage
+            dist/linux/x64/*.deb
