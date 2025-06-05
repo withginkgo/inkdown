@@ -37,6 +37,12 @@ jobs:
         with:
           version: 8
 
+      - name: Verify pnpm installation
+        run: pnpm --version
+
+      - name: Print PATH
+        run: echo $PATH
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
