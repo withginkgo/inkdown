@@ -1,4 +1,4 @@
-name: Package
+name: Build Linux App
 
 on:
   push:
@@ -6,27 +6,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: 'linux'
-            arch: 'x64'
-
-    runs-on: ${{ matrix.os }}
-    env:
-      NODE_OPTIONS: --max-old-space-size=4096
-      TARGET_ARCH: ${{ matrix.arch }}
+  build-linux:
+    runs-on: ubuntu-latest
 
     permissions:
       contents: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install pnpm globally
+      - name: Install pnpm
         run: npm install -g pnpm
 
       - name: Setup Node.js
@@ -34,38 +24,26 @@ jobs:
         with:
           node-version: 22.x
 
-      - name: Verify pnpm
-        run: pnpm --version
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Set environment (optional)
-        if: matrix.platform == 'linux'
-        run: |
-          echo "APPLEID=${{ secrets.APPLEID }}" >> $GITHUB_ENV
-          echo "APPLEIDPASS=${{ secrets.APPLEIDPASS }}" >> $GITHUB_ENV
-          echo "CSC_LINK=${{ secrets.CERTIFICATE_OSX_APPLICATION }}" >> $GITHUB_ENV
-          echo "CSC_KEY_PASSWORD=${{ secrets.CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
-          echo "APPLETEAMID=${{ secrets.APPLETEAMID }}" >> $GITHUB_ENV
+      - name: Build Linux AppImage & tar.gz
+        run: npm run build:linux
 
-      - name: Build Windows
-        run: npm run build:win:x64
+      - name: List build output
+        run: ls -lhR dist/
 
-      - name: List dist files
-        run: ls -R dist
-
-      - name: Upload artifact
+      - name: Upload artifact (AppImage or tar.gz)
         uses: actions/upload-artifact@v4
         with:
-          name: electron-build-${{ matrix.platform }}-${{ matrix.arch }}
+          name: linux-build
           path: dist/
 
-      - name: Upload to GitHub Release (if tag exists)
+      - name: Upload to GitHub Release (only if tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           draft: false
-          prerelease: true
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
