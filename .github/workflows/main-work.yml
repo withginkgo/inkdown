@@ -16,7 +16,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       NODE_OPTIONS: --max-old-space-size=4096
       TARGET_ARCH: ${{ matrix.arch }}
 
@@ -30,18 +29,18 @@ jobs:
       - name: Install pnpm globally
         run: npm install -g pnpm
 
-      - name: Setup Node.js environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
 
-      - name: Verify pnpm installation
+      - name: Verify pnpm
         run: pnpm --version
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Set env for linux
+      - name: Set environment (optional)
         if: matrix.platform == 'linux'
         run: |
           echo "APPLEID=${{ secrets.APPLEID }}" >> $GITHUB_ENV
@@ -50,18 +49,23 @@ jobs:
           echo "CSC_KEY_PASSWORD=${{ secrets.CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
           echo "APPLETEAMID=${{ secrets.APPLETEAMID }}" >> $GITHUB_ENV
 
-      - name: Electron-Win-x64
-        if: matrix.platform == 'linux' && matrix.arch == 'x64'
-        run: |
-          npm run build:linux
+      - name: Build Windows
+        run: npm run build:win:x64
 
       - name: List dist files
         run: ls -R dist
 
-      - name: GH Release
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-build-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/
+
+      - name: Upload to GitHub Release (if tag exists)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           draft: false
           prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
