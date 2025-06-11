@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: linux-latest
+          - os: ubuntu-latest
             platform: 'linux'
             arch: 'x64'
 
